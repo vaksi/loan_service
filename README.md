@@ -68,6 +68,18 @@ Create a loan:
 curl -X POST http://localhost:8080/loans -H 'Content-Type: application/json' -d '{"borrower_id": "12345", "principal": 5000000, "rate": 10, "roi": 8, "agreement_letter_url": "https://example.com/agreement.pdf"}'
 ```
 
+List all Loan: 
+
+```bash 
+curl -X GET http://localhost:8080/loans
+```
+
+Get Loan by id: 
+
+```bash 
+curl -X GET http://localhost:8080/loans/3048bda6-ce51-474e-be1f-7a55ed6191b8
+```
+
 Approve the loan:
 
 ```bash

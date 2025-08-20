@@ -1,0 +1,15 @@
+digraph schema {
+    rankdir=LR;
+    node [shape=record, fontsize=10];
+
+    loans [label="{loans| id : UUID | borrower_id : VARCHAR(50) | principal : NUMERIC(12,2) | rate : NUMERIC(6,2) | roi : NUMERIC(6,2) | agreement_letter_url : TEXT | state : VARCHAR(20) | created_at : TIMESTAMP | updated_at : TIMESTAMP }"];
+    approvals [label="{approvals| id : UUID | loan_id : UUID | picture_url : TEXT | employee_id : VARCHAR(50) | approval_date : DATE | created_at : TIMESTAMP }"];
+    investors [label="{investors| id : UUID | name : VARCHAR(100) | email : VARCHAR(100) | created_at : TIMESTAMP }"];
+    investments [label="{investments| id : UUID | loan_id : UUID | investor_id : UUID | amount : NUMERIC(12,2) | created_at : TIMESTAMP }"];
+    disbursements [label="{disbursements| id : UUID | loan_id : UUID | agreement_url : TEXT | employee_id : VARCHAR(50) | disbursement_date : DATE | created_at : TIMESTAMP }"];
+
+    approvals -> loans [label="loan_id"];
+    investments -> loans [label="loan_id"];
+    investments -> investors [label="investor_id"];
+    disbursements -> loans [label="loan_id"];
+}

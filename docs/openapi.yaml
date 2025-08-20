@@ -1,0 +1,400 @@
+openapi: 3.0.3
+info:
+  title: Amartha Loan Service API
+  description: |
+    This OpenAPI specification documents the REST API for the Amartha loan
+    service. The service allows clients to create loans, approve them,
+    accept investments from multiple investors and disburse loans once
+    fully funded. Operations are deliberately non‑idempotent; repeated
+    requests will produce new records or return an error if a state
+    transition has already occurred.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+paths:
+  /loans:
+    get:
+      summary: List loans
+      description: Returns an array of all loans with their associated approval, investments and disbursement records.
+      responses:
+        '200':
+          description: A list of loans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Loan'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      summary: Create loan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - borrower_id
+                - principal
+                - rate
+                - roi
+              properties:
+                borrower_id:
+                  type: string
+                principal:
+                  type: number
+                  format: double
+                rate:
+                  type: number
+                  format: double
+                roi:
+                  type: number
+                  format: double
+                agreement_letter_url:
+                  type: string
+                  format: uri
+      responses:
+        '201':
+          description: Loan created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Loan'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /loans/{id}:
+    get:
+      summary: Get loan by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Loan found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Loan'
+        '404':
+          description: Loan not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /loans/{id}/approve:
+    post:
+      summary: Approve a loan
+      description: Approves a proposed loan. The loan must not already be approved.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - picture_url
+                - employee_id
+                - approval_date
+              properties:
+                picture_url:
+                  type: string
+                  format: uri
+                employee_id:
+                  type: string
+                approval_date:
+                  type: string
+                  format: date-time
+      responses:
+        '200':
+          description: Loan approved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Loan'
+        '400':
+          description: Invalid request or state transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Loan not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /loans/{id}/invest:
+    post:
+      summary: Invest in a loan
+      description: Records a new investment for the specified loan. The loan must be approved and not over‑funded.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+              properties:
+                investor_id:
+                  type: string
+                  format: uuid
+                  description: Optional existing investor identifier
+                investor_name:
+                  type: string
+                  description: Name of the investor (used when creating a new investor)
+                investor_email:
+                  type: string
+                  format: email
+                  description: Email address of the investor (used when creating a new investor)
+                amount:
+                  type: number
+                  format: double
+                  minimum: 0
+      responses:
+        '200':
+          description: Investment recorded (and loan may be fully funded)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Loan'
+        '400':
+          description: Invalid request or state transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Loan or investor not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /loans/{id}/disburse:
+    post:
+      summary: Disburse a loan
+      description: Disburses a fully funded loan. The loan must be in the invested state and not previously disbursed.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - agreement_url
+                - employee_id
+                - disbursement_date
+              properties:
+                agreement_url:
+                  type: string
+                  format: uri
+                employee_id:
+                  type: string
+                disbursement_date:
+                  type: string
+                  format: date-time
+      responses:
+        '200':
+          description: Loan disbursed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Loan'
+        '400':
+          description: Invalid request or state transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Loan not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    Loan:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        borrower_id:
+          type: string
+        principal:
+          type: number
+          format: double
+        rate:
+          type: number
+          format: double
+        roi:
+          type: number
+          format: double
+        agreement_letter_url:
+          type: string
+          format: uri
+        state:
+          type: string
+          enum:
+            - proposed
+            - approved
+            - invested
+            - disbursed
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        approval:
+          $ref: '#/components/schemas/Approval'
+        investments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Investment'
+        disbursement:
+          $ref: '#/components/schemas/Disbursement'
+    Approval:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        loan_id:
+          type: string
+          format: uuid
+        picture_url:
+          type: string
+          format: uri
+        employee_id:
+          type: string
+        approval_date:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+    Investor:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        created_at:
+          type: string
+          format: date-time
+    Investment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        loan_id:
+          type: string
+          format: uuid
+        investor_id:
+          type: string
+          format: uuid
+        amount:
+          type: number
+          format: double
+        created_at:
+          type: string
+          format: date-time
+    Disbursement:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        loan_id:
+          type: string
+          format: uuid
+        agreement_url:
+          type: string
+          format: uri
+        employee_id:
+          type: string
+        disbursement_date:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
